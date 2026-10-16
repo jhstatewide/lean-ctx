@@ -118,11 +118,22 @@ pub(super) fn validate_v1_request_shape(
     if !enabled {
         return Ok(());
     }
-    if args.contains_key("paths") {
-        return Err(ErrorData::invalid_params(
-            "engine_interface=\"v1\" supports only single-path ctx_read",
-            None,
-        ));
+    if let Some(paths) = args.get("paths") {
+        match paths {
+            Value::Array(paths) if paths.is_empty() => {}
+            Value::Array(_) => {
+                return Err(ErrorData::invalid_params(
+                    "engine_interface=\"v1\" supports only single-path ctx_read",
+                    None,
+                ));
+            }
+            _ => {
+                return Err(ErrorData::invalid_params(
+                    "engine_interface=\"v1\" requires `paths` to be an empty array",
+                    None,
+                ));
+            }
+        }
     }
     if args.get("mode").and_then(Value::as_str) != Some("aggressive") {
         return Err(ErrorData::invalid_params(

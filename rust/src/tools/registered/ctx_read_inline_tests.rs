@@ -415,8 +415,20 @@ fn engine_interface_boundary_rejects_invalid_versions_and_batch_use() {
         "engine_interface must be the string \"v1\" when provided"
     );
 
-    for paths in [json!([]), json!(["/tmp/one", "/tmp/two"]), json!("bad")] {
+    let empty_paths = json!({
+        "path": "/tmp/one",
+        "paths": [],
+        "mode": "aggressive",
+        "engine_interface": "v1"
+    });
+    assert!(
+        engine::validate_v1_request_shape(empty_paths.as_object().unwrap(), true).is_ok(),
+        "an empty paths array should be treated as omitted"
+    );
+
+    for paths in [json!(["/tmp/one", "/tmp/two"]), json!("bad")] {
         let args = json!({
+            "path": "/tmp/one",
             "paths": paths,
             "mode": "aggressive",
             "engine_interface": "v1"
@@ -425,12 +437,9 @@ fn engine_interface_boundary_rejects_invalid_versions_and_batch_use() {
         .unwrap()
         .clone();
         let Err(error) = CtxReadTool.handle(&args, &ctx) else {
-            panic!("Engine v1 paths parameter must fail");
+            panic!("Engine v1 batch or malformed paths must fail");
         };
-        assert_eq!(
-            error.message,
-            "engine_interface=\"v1\" supports only single-path ctx_read"
-        );
+        assert!(error.message.contains("engine_interface=\"v1\""));
     }
 
     for args in [
